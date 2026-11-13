@@ -1,0 +1,686 @@
+
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f8f4ed">
+<title>Anush Spa — Admin Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Armenian:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#f8f5ef;--panel:#fffefa;--ink:#392b22;
+--brown:#896342;--gold:#c4a47e;--muted:#978777;
+--line:#eee5da;--green:#397b59;--red:#b44e49;
+--shadow:0 12px 35px #48331c0c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans Armenian','DM Sans',sans-serif}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+header{height:76px;background:#fffefaed;backdrop-filter:blur(15px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5%;position:sticky;top:0;z-index:20}
+.brand{font:30px 'Cormorant Garamond',serif;color:var(--brown)}
+.brand small{display:block;font:9px 'DM Sans';letter-spacing:4px;text-align:center;color:var(--gold)}
+.header-right{display:flex;align-items:center;gap:15px}
+main{max-width:1250px;margin:35px auto;padding:0 20px}
+h1,h2,h3{font-weight:500}
+h1{font:42px 'Cormorant Garamond',serif;margin:0 0 8px}
+h2{font:29px 'Cormorant Garamond',serif}
+h3{font-size:16px}
+.muted{color:var(--muted);font-size:12px;line-height:1.9}
+.btn{border:0;background:var(--brown);color:white;padding:12px 19px;border-radius:12px;transition:.25s}
+.btn:hover{background:#64462d;transform:translateY(-2px)}
+.btn.light{background:#f0e8dd;color:var(--brown)}
+.btn.red{background:#f9e9e6;color:var(--red)}
+.btn.green{background:#e7f3eb;color:var(--green)}
+.btn:disabled{opacity:.5;cursor:wait}
+#login{max-width:420px;margin:85px auto;background:white;padding:35px;border-radius:22px;box-shadow:var(--shadow)}
+#login h2{margin-top:0}
+input,textarea,select{width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;background:#fffefa;color:var(--ink);outline:none;margin:6px 0 15px}
+input:focus,textarea:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px #c4a47e20}
+label{font-size:12px;color:var(--muted)}
+#login button{width:100%}
+#message{font-size:12px;color:var(--red);margin-top:12px}
+#dashboard{display:none}
+.welcome{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:25px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:27px}
+.stat{background:white;border:1px solid var(--line);border-radius:17px;padding:21px;box-shadow:var(--shadow);transition:.3s}
+.stat:hover{transform:translateY(-4px)}
+.stat-icon{font-size:23px}
+.stat strong{display:block;font-size:29px;margin:12px 0 3px}
+.stat span{font-size:11px;color:var(--muted)}
+.tabs{display:flex;gap:9px;flex-wrap:wrap;margin:25px 0}
+.tab{border:1px solid var(--line);background:white;color:var(--brown);padding:12px 17px;border-radius:12px;transition:.2s}
+.tab.active,.tab:hover{background:var(--brown);color:white;border-color:var(--brown)}
+.panel{background:white;border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:var(--shadow);margin-bottom:24px}
+.panel[hidden]{display:none}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:20px}
+.panel-head h2{margin:0}
+.item{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.item:last-child{border:0}
+.item-info{flex:1;min-width:180px}
+.item-info strong{font-size:14px}
+.item-actions{display:flex;gap:6px;flex-wrap:wrap}
+.status{display:inline-block;border-radius:30px;padding:6px 12px;font-size:11px;font-weight:600}
+.status-pending{background:#fff2d8;color:#a87524}
+.status-confirmed{background:#e5f2e9;color:#267448}
+.status-completed{background:#e8edf8;color:#4d6495}
+.status-cancelled{background:#fae8e6;color:#b4433e}
+.filter{max-width:230px;margin:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+.service-admin{display:grid;grid-template-columns:90px 1fr auto;gap:17px;align-items:center}
+.thumb{width:90px;height:75px;object-fit:cover;border-radius:12px;background:#eee4d7}
+.empty{text-align:center;padding:35px;color:var(--muted);font-size:13px}
+.preview{width:100%;max-height:230px;object-fit:cover;border-radius:15px;display:none;margin:10px 0}
+.upload{border:1px dashed #c9b397;background:#fbf8f2;border-radius:15px;padding:18px;text-align:center;cursor:pointer;color:var(--brown);display:block;margin:8px 0 14px}
+.upload:hover{background:#f4ebdf}
+.upload input{display:none}
+.toggle{display:flex;justify-content:space-between;align-items:center;padding:17px 0;border-bottom:1px solid var(--line);gap:15px}
+.toggle input{width:20px;margin:0;accent-color:var(--brown)}
+.toggle strong{font-size:13px}
+.notice{padding:13px 16px;border-radius:12px;background:#f5efe6;color:var(--brown);font-size:12px;line-height:1.8;margin:15px 0}
+#toast{position:fixed;bottom:25px;right:20px;background:#392b22;color:white;padding:15px 22px;border-radius:13px;box-shadow:var(--shadow);z-index:100;opacity:0;transform:translateY(15px);transition:.3s;pointer-events:none;font-size:13px}
+#toast.show{opacity:1;transform:none}
+#logoutBtn{font-size:12px}
+.actions-top{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:800px){
+.stats{grid-template-columns:1fr 1fr}
+.service-admin{grid-template-columns:65px 1fr}
+.service-admin .item-actions{grid-column:1/-1}
+.thumb{width:65px;height:65px}
+}
+@media(max-width:520px){
+header{padding:0 4%;height:68px}
+.brand{font-size:25px}
+main{margin:23px auto;padding:0 12px}
+.stats{gap:9px}
+.stat{padding:14px}
+.stat strong{font-size:24px}
+.panel{padding:17px}
+.form-grid{grid-template-columns:1fr}
+.full{grid-column:auto}
+.welcome h1{font-size:34px}
+.item-actions .btn{padding:9px 11px;font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<header>
+<div class="brand">Anush Spa<small>ADMIN STUDIO</small></div>
+<div class="header-right">
+<span class="muted" id="adminEmail"></span>
+<button class="btn light" id="logoutBtn" onclick="logout()" hidden>Ելք ↗</button>
+</div>
+</header>
+
+<main>
+<div id="login">
+<h2>Բարի վերադարձ</h2>
+<p class="muted">Մուտք գործիր կառավարման համակարգ։</p>
+<form id="loginForm">
+<label>Էլեկտրոնային փոստ</label>
+<input id="email" type="email" required autocomplete="username">
+<label>Գաղտնաբառ</label>
+<input id="password" type="password" required autocomplete="current-password">
+<button class="btn" type="submit">Մուտք գործել</button>
+</form>
+<div id="message"></div>
+</div>
+
+<div id="dashboard">
+<div class="welcome">
+<div>
+<p class="muted">ANUSH SPA CENTRE · KAPAN</p>
+<h1>Կառավարման վահանակ</h1>
+<p class="muted">Բարի գալուստ։ Այստեղից կարող ես կառավարել քո կենտրոնը։</p>
+</div>
+<div class="actions-top">
+<button class="btn light" onclick="refreshAll()">↻ Թարմացնել</button>
+</div>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="stat-icon">📋</div><strong id="statTotal">0</strong><span>Ընդհանուր հայտեր</span></div>
+<div class="stat"><div class="stat-icon">📅</div><strong id="statToday">0</strong><span>Այսօրվա հայտեր</span></div>
+<div class="stat"><div class="stat-icon">✓</div><strong id="statConfirmed">0</strong><span>Հաստատված</span></div>
+<div class="stat"><div class="stat-icon">✦</div><strong id="statServices">0</strong><span>Ծառայություններ</span></div>
+</div>
+
+<div class="tabs">
+<button class="tab active" data-tab="bookings">📋 Ամրագրումներ</button>
+<button class="tab" data-tab="services">✦ Ծառայություններ</button>
+<button class="tab" data-tab="announcements">📣 Հայտարարություններ</button>
+<button class="tab" data-tab="themes">🎨 Ձևավորումներ</button>
+</div>
+
+<!-- BOOKINGS -->
+<section class="panel" id="bookings">
+<div class="panel-head">
+<h2>Ամրագրումներ</h2>
+<select id="bookingFilter" class="filter" onchange="loadBookings()">
+<option value="all">Բոլոր հայտերը</option>
+<option value="pending">Նոր հայտեր</option>
+<option value="confirmed">Հաստատված</option>
+<option value="completed">Ավարտված</option>
+<option value="cancelled">Մերժված</option>
+</select>
+</div>
+<div id="bookingList" class="empty">Բեռնվում է...</div>
+</section>
+
+<!-- SERVICES -->
+<section class="panel" id="services" hidden>
+<div class="panel-head"><h2>Ծառայությունների կառավարում</h2></div>
+<form id="serviceForm">
+<input type="hidden" id="serviceId">
+<div class="form-grid">
+<div><label>Ծառայության անվանում</label><input id="serviceTitle" required maxlength="150"></div>
+<div><label>Գին (դրամ)</label><input id="servicePrice" type="number" min="0"></div>
+<div class="full"><label>Նկարագրություն</label><textarea id="serviceDescription" rows="3"></textarea></div>
+<div class="full">
+<label class="upload">
+<span>📷 Ընտրել նկար հեռախոսից կամ համակարգչից</span>
+<input type="file" id="serviceImage" accept="image/jpeg,image/png,image/webp">
+</label>
+<img id="servicePreview" class="preview" alt="Նկարի նախադիտում">
+<span class="muted" id="serviceImageInfo">Նկարը պարտադիր չէ։ Առավելագույնը՝ 5 ՄԲ։</span>
+</div>
+</div>
+<div class="actions-top">
+<button class="btn" type="submit" id="serviceSave">Պահպանել ծառայությունը</button>
+<button class="btn light" type="button" onclick="resetService()">Մաքրել</button>
+</div>
+</form>
+<hr style="border:0;border-top:1px solid var(--line);margin:25px 0">
+<h3>Ավելացված ծառայություններ</h3>
+<div id="serviceList" class="empty">Բեռնվում է...</div>
+</section>
+
+<!-- ANNOUNCEMENTS -->
+<section class="panel" id="announcements" hidden>
+<div class="panel-head"><h2>Հայտարարություններ և նորություններ</h2></div>
+<form id="announcementForm">
+<input type="hidden" id="announcementId">
+<div class="form-grid">
+<div class="full"><label>Վերնագիր</label><input id="announcementTitle" required maxlength="180"></div>
+<div class="full"><label>Նկարագրություն</label><textarea id="announcementDescription" rows="3"></textarea></div>
+<div><label>Ցուցադրման սկիզբ</label><input id="announcementStart" type="datetime-local"></div>
+<div><label>Ցուցադրման ավարտ</label><input id="announcementEnd" type="datetime-local"></div>
+<div class="full">
+<label class="upload">
+<span>🖼️ Ընտրել հայտարարության նկար</span>
+<input type="file" id="announcementImage" accept="image/jpeg,image/png,image/webp">
+</label>
+<img id="announcementPreview" class="preview" alt="Նկարի նախադիտում">
+</div>
+<div class="full"><label><input id="announcementActive" type="checkbox" checked style="width:auto;margin-right:8px">Ակտիվացնել հայտարարությունը</label></div>
+</div>
+<div class="actions-top">
+<button class="btn" type="submit" id="announcementSave">Հրապարակել</button>
+<button class="btn light" type="button" onclick="resetAnnouncement()">Մաքրել</button>
+</div>
+</form>
+<hr style="border:0;border-top:1px solid var(--line);margin:25px 0">
+<h3>Հայտարարությունների ցանկ</h3>
+<div id="announcementList" class="empty">Բեռնվում է...</div>
+</section>
+
+<!-- THEMES -->
+<section class="panel" id="themes" hidden>
+<div class="panel-head"><h2>Կայքի ձևավորումներ</h2></div>
+<div class="notice">Ընտրիր սեզոնային ձևավորումը։ Միաժամանակ մի քանի եղանակ միացնել խորհուրդ չի տրվում։</div>
+<div class="toggle"><div><strong>❄️ Ամանորյա ձմեռ</strong><div class="muted">Ընկնող ձյուն և փաթիլներ</div></div><input type="checkbox" id="winter"></div>
+<div class="toggle"><div><strong>🌸 Գարուն</strong><div class="muted">Ծաղկաթերթիկների անիմացիա</div></div><input type="checkbox" id="spring"></div>
+<div class="toggle"><div><strong>☀️ Ամառ</strong><div class="muted">Արևային փայլեր և թեթև էֆեկտներ</div></div><input type="checkbox" id="summer"></div>
+<div class="toggle"><div><strong>🍂 Աշուն</strong><div class="muted">Ընկնող գունավոր տերևներ</div></div><input type="checkbox" id="autumn"></div>
+<div class="toggle"><div><strong>✨ Անիմացիաներ</strong><div class="muted">Միացնել կամ անջատել շարժվող էֆեկտները</div></div><input type="checkbox" id="animations" checked></div>
+<button class="btn" style="margin-top:20px" onclick="saveThemes()">Պահպանել ձևավորումները</button>
+<div id="themeMessage" class="muted" style="margin-top:12px"></div>
+</section>
+</div>
+</main>
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://pjevbjyxpydrivpvljgp.supabase.co';
+const SUPABASE_KEY='sb_publishable_ogxpZXHXriRUS8w-tV1ThA_dOj5BNv6';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let user=null;
+let services=[];
+let announcements=[];
+let bookings=[];
+
+const $=id=>document.getElementById(id);
+
+function escapeHTML(v){
+return String(v??'').replace(/[&<>"']/g,c=>({
+'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+}
+
+function toast(message){
+const el=$('toast');
+el.textContent=message;
+el.classList.add('show');
+clearTimeout(window.toastTimer);
+window.toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+function errorMessage(error){
+console.error(error);
+toast(error.message||'Գործողությունը չհաջողվեց։');
+}
+
+function dateToday(){
+const d=new Date();
+return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function formatDate(d){
+if(!d)return '—';
+return new Date(d).toLocaleString('hy-AM',{dateStyle:'medium',timeStyle:'short'});
+}
+
+function statusName(s){
+return {
+pending:'Նոր հայտ',
+confirmed:'Հաստատված',
+completed:'Ավարտված',
+cancelled:'Մերժված'
+}[s]||s;
+}
+
+function statusHTML(s){
+return `<span class="status status-${escapeHTML(s)}">${escapeHTML(statusName(s))}</span>`;
+}
+
+/* LOGIN */
+$('loginForm').addEventListener('submit',async e=>{
+e.preventDefault();
+$('message').textContent='Ստուգվում է մուտքը...';
+const {error}=await db.auth.signInWithPassword({
+email:$('email').value.trim(),
+password:$('password').value
+});
+if(error){$('message').textContent='Մուտքի սխալ։ '+error.message;return}
+await checkAdmin();
+});
+
+async function checkAdmin(){
+const {data:{user:u},error}=await db.auth.getUser();
+if(error||!u){
+$('message').textContent='Մուտքի սեսիան չի գտնվել։';
+return;
+}
+const {data,error:e}=await db.from('admin_users')
+.select('user_id,role').eq('user_id',u.id).maybeSingle();
+
+if(e){$('message').textContent=e.message;return}
+if(!data||data.role!=='admin'){
+$('message').textContent='Այս հաշիվը ադմինիստրատորի իրավունք չունի։';
+await db.auth.signOut();
+return;
+}
+user=u;
+$('login').style.display='none';
+$('dashboard').style.display='block';
+$('logoutBtn').hidden=false;
+$('adminEmail').textContent=u.email||'Ադմին';
+await refreshAll();
+}
+
+async function logout(){
+await db.auth.signOut();
+location.reload();
+}
+
+/* TABS */
+document.querySelectorAll('.tab').forEach(btn=>{
+btn.addEventListener('click',()=>{
+document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+document.querySelectorAll('#dashboard .panel').forEach(p=>p.hidden=true);
+$(btn.dataset.tab).hidden=false;
+});
+});
+
+/* REFRESH */
+async function refreshAll(){
+await Promise.all([
+loadBookings(),loadServices(),loadAnnouncements(),loadThemes()
+]);
+updateStats();
+}
+
+/* BOOKINGS */
+async function loadBookings(){
+const box=$('bookingList');
+box.textContent='Բեռնվում է...';
+let query=db.from('bookings').select('*').order('created_at',{ascending:false});
+const filter=$('bookingFilter').value;
+if(filter!=='all')query=query.eq('status',filter);
+const {data,error}=await query;
+if(error){box.textContent=error.message;return}
+bookings=data||[];
+if(!bookings.length){box.innerHTML='<div class="empty">Այս բաժնում հայտեր չկան։</div>';updateStats();return}
+
+box.innerHTML=bookings.map(b=>`
+<div class="item">
+<div class="item-info">
+<strong>${escapeHTML(b.customer_name)}</strong>
+<div class="muted">
+☎ ${escapeHTML(b.phone)}<br>
+✦ ${escapeHTML(b.service_name)}<br>
+📅 ${escapeHTML(b.booking_date)} · ${escapeHTML(b.booking_time)}<br>
+${b.note?'Նշում՝ '+escapeHTML(b.note):''}
+</div>
+${statusHTML(b.status)}
+</div>
+<div class="item-actions">
+${b.status!=='confirmed'?`<button class="btn green" onclick="changeStatus('${b.id}','confirmed')">Հաստատել</button>`:''}
+${b.status!=='completed'?`<button class="btn light" onclick="changeStatus('${b.id}','completed')">Ավարտել</button>`:''}
+${b.status!=='cancelled'?`<button class="btn red" onclick="changeStatus('${b.id}','cancelled')">Մերժել</button>`:''}
+</div>
+</div>`).join('');
+updateStats();
+}
+
+async function changeStatus(id,status){
+const {error}=await db.from('bookings').update({status}).eq('id',id);
+if(error){errorMessage(error);return}
+toast('Հայտի կարգավիճակը փոխվեց։');
+await loadBookings();
+}
+
+/* STATS */
+function updateStats(){
+$('statTotal').textContent=bookings.length;
+$('statToday').textContent=bookings.filter(b=>b.booking_date===dateToday()).length;
+$('statConfirmed').textContent=bookings.filter(b=>b.status==='confirmed').length;
+$('statServices').textContent=services.length;
+}
+
+/* IMAGE UPLOAD */
+async function optimizeImage(file){
+if(!file.type.startsWith('image/'))throw new Error('Ընտրիր նկար։');
+if(file.size>5*1024*1024)throw new Error('Նկարը պետք է լինի մինչև 5 ՄԲ։');
+
+if(file.type==='image/gif')return file;
+
+const bitmap=await createImageBitmap(file);
+const max=1500;
+const scale=Math.min(1,max/Math.max(bitmap.width,bitmap.height));
+const canvas=document.createElement('canvas');
+canvas.width=Math.round(bitmap.width*scale);
+canvas.height=Math.round(bitmap.height*scale);
+canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+bitmap.close();
+
+return await new Promise(resolve=>{
+canvas.toBlob(blob=>resolve(blob||file),'image/webp',.83);
+});
+}
+
+async function uploadImage(file,folder){
+if(!file)return null;
+const optimized=await optimizeImage(file);
+const ext=optimized.type==='image/webp'?'webp':
+file.name.split('.').pop().toLowerCase();
+const path=folder+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
+const {error}=await db.storage.from('spa-images').upload(path,optimized,{
+contentType:optimized.type||file.type,
+upsert:false
+});
+if(error)throw error;
+const {data}=db.storage.from('spa-images').getPublicUrl(path);
+return data.publicUrl;
+}
+
+function previewFile(input,preview){
+input.addEventListener('change',()=>{
+const file=input.files[0];
+if(!file)return;
+if(!file.type.startsWith('image/')||file.size>5*1024*1024){
+toast('Նկարը պետք է լինի մինչև 5 ՄԲ։');
+input.value='';
+return;
+}
+const url=URL.createObjectURL(file);
+$(preview).src=url;
+$(preview).style.display='block';
+});
+}
+previewFile($('serviceImage'),'servicePreview');
+previewFile($('announcementImage'),'announcementPreview');
+
+/* SERVICES */
+async function loadServices(){
+const {data,error}=await db.from('services').select('*').order('sort_order',{ascending:true});
+if(error){$('serviceList').textContent=error.message;return}
+services=data||[];
+renderServices();
+updateStats();
+}
+
+function renderServices(){
+if(!services.length){$('serviceList').innerHTML='<div class="empty">Ծառայություններ դեռ չկան։</div>';return}
+$('serviceList').innerHTML=services.map(s=>`
+<div class="item service-admin">
+<img class="thumb" src="${escapeHTML(s.image_url||'')}" onerror="this.style.visibility='hidden'" alt="">
+<div class="item-info">
+<strong>${escapeHTML(s.title)}</strong>
+<div class="muted">${escapeHTML(s.description||'')}</div>
+<div class="muted">Գին՝ ${s.price==null?'Չնշված':escapeHTML(s.price)+' ֏'}</div>
+</div>
+<div class="item-actions">
+<button class="btn light" onclick="editService('${s.id}')">Փոփոխել</button>
+<button class="btn red" onclick="deleteService('${s.id}')">Ջնջել</button>
+</div>
+</div>`).join('');
+}
+
+function resetService(){
+$('serviceForm').reset();
+$('serviceId').value='';
+$('servicePreview').style.display='none';
+$('serviceImageInfo').textContent='Նկարը պարտադիր չէ։ Առավելագույնը՝ 5 ՄԲ։';
+$('serviceSave').textContent='Պահպանել ծառայությունը';
+}
+
+async function editService(id){
+const s=services.find(x=>String(x.id)===String(id));
+if(!s)return;
+$('serviceId').value=s.id;
+$('serviceTitle').value=s.title||'';
+$('serviceDescription').value=s.description||'';
+$('servicePrice').value=s.price??'';
+$('serviceImage').value='';
+$('servicePreview').src=s.image_url||'';
+$('servicePreview').style.display=s.image_url?'block':'none';
+$('serviceImageInfo').textContent=s.image_url?'Կարող ես ընտրել նոր նկար՝ հինը փոխարինելու համար։':'Նկար չկա։';
+$('serviceSave').textContent='Պահպանել փոփոխությունները';
+$('serviceForm').scrollIntoView({behavior:'smooth'});
+}
+
+$('serviceForm').addEventListener('submit',async e=>{
+e.preventDefault();
+const btn=$('serviceSave');
+btn.disabled=true;
+try{
+const id=$('serviceId').value;
+const old=services.find(x=>String(x.id)===String(id));
+const file=$('serviceImage').files[0];
+let image_url=old?.image_url||null;
+if(file)image_url=await uploadImage(file,'services');
+
+const item={
+title:$('serviceTitle').value.trim(),
+description:$('serviceDescription').value.trim(),
+price:$('servicePrice').value===''?null:Number($('servicePrice').value),
+image_url
+};
+const result=id
+?await db.from('services').update(item).eq('id',id)
+:await db.from('services').insert(item);
+
+if(result.error)throw result.error;
+toast('Ծառայությունը պահպանվեց։');
+resetService();
+await loadServices();
+}catch(err){errorMessage(err)}
+finally{btn.disabled=false}
+});
+
+async function deleteService(id){
+if(!confirm('Ջնջե՞լ այս ծառայությունը։'))return;
+const {error}=await db.from('services').delete().eq('id',id);
+if(error){errorMessage(error);return}
+toast('Ծառայությունը ջնջվեց։');
+await loadServices();
+}
+
+/* ANNOUNCEMENTS */
+async function loadAnnouncements(){
+const {data,error}=await db.from('announcements').select('*').order('created_at',{ascending:false});
+if(error){$('announcementList').textContent=error.message;return}
+announcements=data||[];
+renderAnnouncements();
+}
+
+function renderAnnouncements(){
+if(!announcements.length){$('announcementList').innerHTML='<div class="empty">Հայտարարություններ դեռ չկան։</div>';return}
+$('announcementList').innerHTML=announcements.map(a=>`
+<div class="item">
+<div class="item-info">
+<strong>${escapeHTML(a.title)}</strong>
+<div class="muted">${escapeHTML(a.description||'')}</div>
+<div class="muted">${a.active?'🟢 Ակտիվ':'⚪ Անջատված'}</div>
+<div class="muted">Սկիզբ՝ ${formatDate(a.starts_at)}<br>Ավարտ՝ ${formatDate(a.ends_at)}</div>
+</div>
+<div class="item-actions">
+<button class="btn light" onclick="editAnnouncement('${a.id}')">Փոփոխել</button>
+<button class="btn red" onclick="deleteAnnouncement('${a.id}')">Ջնջել</button>
+</div>
+</div>`).join('');
+}
+
+function toLocalInput(v){
+if(!v)return '';
+const d=new Date(v);
+return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+
+function resetAnnouncement(){
+$('announcementForm').reset();
+$('announcementId').value='';
+$('announcementPreview').style.display='none';
+$('announcementSave').textContent='Հրապարակել';
+}
+
+function editAnnouncement(id){
+const a=announcements.find(x=>String(x.id)===String(id));
+if(!a)return;
+$('announcementId').value=a.id;
+$('announcementTitle').value=a.title||'';
+$('announcementDescription').value=a.description||'';
+$('announcementStart').value=toLocalInput(a.starts_at);
+$('announcementEnd').value=toLocalInput(a.ends_at);
+$('announcementActive').checked=!!a.active;
+$('announcementImage').value='';
+$('announcementPreview').src=a.image_url||'';
+$('announcementPreview').style.display=a.image_url?'block':'none';
+$('announcementSave').textContent='Պահպանել փոփոխությունները';
+$('announcementForm').scrollIntoView({behavior:'smooth'});
+}
+
+$('announcementForm').addEventListener('submit',async e=>{
+e.preventDefault();
+const btn=$('announcementSave');
+btn.disabled=true;
+try{
+const id=$('announcementId').value;
+const old=announcements.find(x=>String(x.id)===String(id));
+const file=$('announcementImage').files[0];
+let image_url=old?.image_url||null;
+if(file)image_url=await uploadImage(file,'announcements');
+
+const start=$('announcementStart').value;
+const end=$('announcementEnd').value;
+if(start&&end&&new Date(end)<=new Date(start))throw new Error('Ավարտի ամսաթիվը պետք է ուշ լինի մեկնարկից։');
+
+const item={
+title:$('announcementTitle').value.trim(),
+description:$('announcementDescription').value.trim(),
+image_url,
+starts_at:start?new Date(start).toISOString():null,
+ends_at:end?new Date(end).toISOString():null,
+active:$('announcementActive').checked
+};
+const result=id
+?await db.from('announcements').update(item).eq('id',id)
+:await db.from('announcements').insert(item);
+
+if(result.error)throw result.error;
+toast('Հայտարարությունը պահպանվեց։');
+resetAnnouncement();
+await loadAnnouncements();
+}catch(err){errorMessage(err)}
+finally{btn.disabled=false}
+});
+
+async function deleteAnnouncement(id){
+if(!confirm('Ջնջե՞լ հայտարարությունը։'))return;
+const {error}=await db.from('announcements').delete().eq('id',id);
+if(error){errorMessage(error);return}
+toast('Հայտարարությունը ջնջվեց։');
+await loadAnnouncements();
+}
+
+/* THEMES */
+async function loadThemes(){
+const {data,error}=await db.from('site_settings')
+.select('settings').eq('id',1).maybeSingle();
+if(error){$('themeMessage').textContent=error.message;return}
+const s=data?.settings||{};
+$('winter').checked=!!s.winter_theme;
+$('spring').checked=!!s.spring_theme;
+$('summer').checked=!!s.summer_theme;
+$('autumn').checked=!!s.autumn_theme;
+$('animations').checked=s.animations!==false;
+}
+
+async function saveThemes(){
+const ids=['winter','spring','summer','autumn'];
+const active=ids.filter(id=>$(id).checked);
+if(active.length>1){
+toast('Ընտրիր միայն մեկ սեզոնային ձևավորում։');
+return;
+}
+const settings={
+winter_theme:$('winter').checked,
+spring_theme:$('spring').checked,
+summer_theme:$('summer').checked,
+autumn_theme:$('autumn').checked,
+animations:$('animations').checked
+};
+const {error}=await db.from('site_settings').update({
+settings,updated_at:new Date().toISOString()
+}).eq('id',1);
+
+if(error){$('themeMessage').textContent='Սխալ՝ '+error.message;return}
+$('themeMessage').textContent='✓ Ձևավորումները հաջողությամբ պահպանվեցին։';
+toast('Ձևավորումները պահպանվեցին։');
+}
+
+/* START */
+db.auth.getSession().then(async({data,error})=>{
+if(error){$('message').textContent=error.message;return}
+if(data.session)await checkAdmin();
+});
+</script>
+</body>
+</html>
